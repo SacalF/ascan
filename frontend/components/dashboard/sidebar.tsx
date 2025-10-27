@@ -76,7 +76,22 @@ export function Sidebar() {
   useEffect(() => {
     const getProfile = async () => {
       try {
-        const response = await fetch("/api/auth/me")
+        // Obtener la URL base del backend
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ascangt.org:3001'
+        const response = await fetch(`${apiUrl}/api/auth/me`, {
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        })
+
+        if (!response.ok) {
+          console.error(`Error en respuesta del servidor: ${response.status}`)
+          const text = await response.text()
+          console.error("Respuesta del servidor:", text)
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
         const data = await response.json()
 
         if (data && data.user) {
@@ -102,7 +117,11 @@ export function Sidebar() {
 
   const handleSignOut = async () => {
     try {
-      await fetch("/api/auth/logout", { method: "POST" })
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ascangt.org:3001'
+      await fetch(`${apiUrl}/api/auth/logout`, { 
+        method: "POST",
+        credentials: 'include'
+      })
       router.push("/auth/login")
     } catch (error) {
       console.error("Error cerrando sesión:", error)
