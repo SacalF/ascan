@@ -102,8 +102,8 @@ export default function HorarioDiarioPage() {
       // Cargar citas del día específico
       const citasResult = await apiClient.getCitas(fechaSeleccionada)
       console.log("Resultado de citas:", citasResult)
-      if (citasResult.data) {
-        const citasData = citasResult.data as Cita[]
+      if (citasResult.data && (citasResult.data as any).citas) {
+        const citasData = (citasResult.data as any).citas as Cita[]
         console.log("Citas cargadas:", citasData)
         setCitas(citasData)
       }

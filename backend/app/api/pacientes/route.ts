@@ -1,17 +1,17 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { pool, generateUUID, executeQuery } from "@/lib/mysql"
-import { authenticateRequest } from "@/lib/auth-middleware"
+import { authenticateRequest } from "@/lib/auth-middleware-improved"
 import { logCreate } from "@/lib/audit-logger"
 
 export async function GET(request: NextRequest) {
   try {
     // Verificar autenticación
     const authResult = await authenticateRequest(request)
-    if (!authResult) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error || "No autenticado" }, { status: 401 })
     }
     
-    console.log("=== API PACIENTES GET - Usuario:", authResult.nombres)
+    console.log("=== API PACIENTES GET - Usuario:", authResult.user?.nombres)
 
     const { searchParams } = new URL(request.url)
     const searchTerm = searchParams.get("search")
@@ -53,10 +53,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = await authenticateRequest(request)
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    const authResult = await authenticateRequest(request)
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error || "No autenticado" }, { status: 401 })
     }
+
+    const user = authResult.user!
 
     const body = await request.json()
     const {

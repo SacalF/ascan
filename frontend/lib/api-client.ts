@@ -12,10 +12,10 @@ class ApiClient {
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === undefined
     
     if (isDevelopment) {
-      this.baseUrl = "http://localhost:3001"
+      this.baseUrl = "http://localhost:3001/api"
     } else {
       // En producción, usar la URL del backend desplegado
-      this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://ascangt.org:3001'
+      this.baseUrl = (process.env.NEXT_PUBLIC_API_URL || 'https://ascangt.org:3001') + '/api'
     }
     
     console.log(`[API] Base URL: ${this.baseUrl}`)
@@ -25,7 +25,7 @@ class ApiClient {
 
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<ApiResponse<T>> {
     try {
-      const url = `${this.baseUrl}/api${endpoint}`
+      const url = `${this.baseUrl}${endpoint}`
       console.log(`[API] Making request to: ${url}`)
       console.log(`[API] Options:`, options)
       

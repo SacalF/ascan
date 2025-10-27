@@ -41,9 +41,9 @@ function CitasContent() {
         console.log("Result completo:", result)
         console.log("Datos de citas:", result.data)
         
-        if (Array.isArray(result.data)) {
-          console.log("Cantidad de citas:", result.data.length)
-          result.data.forEach((cita, index) => {
+        if (result.data && Array.isArray((result.data as any).citas)) {
+          console.log("Cantidad de citas:", (result.data as any).citas.length)
+          ;(result.data as any).citas.forEach((cita: any, index: number) => {
             console.log(`Cita ${index + 1}:`, {
               id: cita.id_cita,
               fecha_hora: cita.fecha_hora,
@@ -52,7 +52,7 @@ function CitasContent() {
               estado: cita.estado
             })
           })
-          setCitas(result.data)
+          setCitas((result.data as any).citas)
         } else {
           setError("No se pudieron cargar las citas")
         }

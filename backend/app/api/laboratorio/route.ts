@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { executeQuery } from "@/lib/mysql"
-import { authMiddleware } from "@/lib/auth-middleware"
+import { authenticateRequest } from "@/lib/auth-middleware-improved"
 import { DigitalOceanSpacesService } from "@/lib/digitalocean-spaces"
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await authMiddleware(request)
+    const authResult = await authenticateRequest(request)
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: 401 })
     }
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await authMiddleware(request)
+    const authResult = await authenticateRequest(request)
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: 401 })
     }
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         archivo_nombre,
         archivo_url, // Guardamos la URL en archivo_contenido
         archivo_tipo,
-        authResult.user?.id,
+        authResult.user?.id_usuario,
       ],
     )
 

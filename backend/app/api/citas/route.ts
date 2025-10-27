@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { executeQuery } from "@/lib/mysql"
-import { authMiddleware } from "@/lib/auth-middleware"
+import { authenticateRequest } from "@/lib/auth-middleware-improved"
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await authMiddleware(request)
+    const authResult = await authenticateRequest(request)
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: 401 })
     }
@@ -74,7 +74,7 @@ export async function GET(request: NextRequest) {
       })
     }
     
-    return NextResponse.json(citas)
+    return NextResponse.json({ citas: Array.isArray(citas) ? citas : [] })
   } catch (error) {
     console.error("Error fetching citas:", error)
     return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await authMiddleware(request)
+    const authResult = await authenticateRequest(request)
     if (!authResult.success || !authResult.user) {
       return NextResponse.json({ error: authResult.error || "Usuario no autenticado" }, { status: 401 })
     }
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
         await executeQuery(
           `INSERT INTO pacientes (id_paciente, nombres, apellidos, numero_registro_medico, fecha_registro, usuario_registro)
            VALUES (?, ?, '', 'TEMP-${Date.now()}', NOW(), ?)`,
-          [tempPacienteId, paciente_nombre, authResult.user.id]
+          [tempPacienteId, paciente_nombre, authResult.user.id_usuario]
         )
         finalPacienteId = tempPacienteId
       } catch (error) {
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
     console.log("fecha_hora MySQL:", fechaHoraMySQL)
     console.log("estado:", estado || "programada")
     console.log("motivo final:", paciente_nombre && !paciente_id ? `${motivo} - Paciente: ${paciente_nombre}` : motivo)
-    console.log("usuario_registro:", authResult.user.id)
+    console.log("usuario_registro:", authResult.user.id_usuario)
     
     const result = await executeQuery(
       `INSERT INTO cita (id_cita, paciente_id, medico_id, fecha_hora, estado, motivo, usuario_registro, fecha_registro)
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
         fechaHoraMySQL,  // Usar fecha convertida a formato MySQL
         estado || "programada", 
         paciente_nombre && !paciente_id ? `${motivo} - Paciente: ${paciente_nombre}` : motivo,
-        authResult.user.id  // ID del usuario autenticado
+        authResult.user.id_usuario  // ID del usuario autenticado
       ],
     )
     

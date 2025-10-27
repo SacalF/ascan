@@ -12,15 +12,15 @@ import { ArrowLeft, Calendar, Activity, TestTube, Stethoscope, ClipboardList, Do
 import Link from "next/link"
 
 interface Paciente {
-  id: string
-  nombre: string
+  id_paciente: string
+  nombres: string
   apellidos: string
   fecha_nacimiento: string
   sexo: string
   telefono: string
-  email: string
+  correo_electronico: string
   dpi: string
-  registro_medico: string
+  numero_registro_medico: string
 }
 
 interface Consulta {
@@ -74,53 +74,17 @@ export default function ExpedientePage() {
           console.error("Error al cargar paciente:", pacienteData.error)
           return
         }
-        setPaciente(pacienteData.data as Paciente)
+        
+        // La API devuelve { paciente, citas, consultasIniciales, etc. }
+        const data = pacienteData.data as any
+        if (data && data.paciente) {
+          setPaciente(data.paciente as Paciente)
+          setConsultas(data.consultasIniciales || [])
+          setExamenes(data.examenesFisicos || [])
+          setLaboratorios(data.laboratorios || [])
+          setValoraciones(data.valoraciones || [])
+        }
 
-        // Por ahora usar datos de ejemplo hasta que tengas los métodos correctos en tu API
-        setConsultas([
-          {
-            id: "1",
-            fecha: "2024-01-15",
-            motivo_consulta: "Dolor de cabeza",
-            sintoma_principal: "Cefalea persistente"
-          },
-          {
-            id: "2", 
-            fecha: "2024-01-10",
-            motivo_consulta: "Control rutinario",
-            sintoma_principal: "Revisión general"
-          }
-        ])
-
-        setExamenes([
-          {
-            id: "1",
-            fecha: "2024-01-15",
-            peso: 70,
-            talla: 170,
-            pulso: 80,
-            temperatura: 36.5
-          }
-        ])
-
-        setLaboratorios([
-          {
-            id: "1",
-            fecha: "2024-01-15",
-            tipo_examen: "Hemograma completo",
-            resultados: "Valores normales",
-            estado: "normal"
-          }
-        ])
-
-        setValoraciones([
-          {
-            id: "1",
-            fecha: "2024-01-15",
-            diagnostico: "Migraña tensional",
-            plan_tratamiento: "Reposo y medicación"
-          }
-        ])
 
       } catch (error) {
         console.error("Error al cargar datos:", error)
@@ -184,7 +148,7 @@ export default function ExpedientePage() {
               <div>
                 <h1 className="text-lg font-semibold text-foreground">Expediente Médico</h1>
                 <p className="text-sm text-muted-foreground">
-                  {paciente.nombre} {paciente.apellidos} - {paciente.registro_medico}
+                  {paciente.nombres} {paciente.apellidos} - {paciente.numero_registro_medico}
                 </p>
               </div>
             </div>
@@ -454,7 +418,7 @@ export default function ExpedientePage() {
                   <div className="grid grid-cols-1 gap-3">
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Nombre Completo</p>
-                      <p className="font-medium">{paciente.nombre} {paciente.apellidos}</p>
+                      <p className="font-medium">{paciente.nombres} {paciente.apellidos}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Edad</p>
@@ -470,7 +434,7 @@ export default function ExpedientePage() {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Email</p>
-                      <p className="font-medium text-sm">{paciente.email}</p>
+                      <p className="font-medium text-sm">{paciente.correo_electronico}</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">DPI</p>

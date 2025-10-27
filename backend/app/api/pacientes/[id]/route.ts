@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { executeQuery } from "@/lib/mysql"
-import { authenticateRequest } from "@/lib/auth-middleware"
+import { authenticateRequest } from "@/lib/auth-middleware-improved"
 
 interface RouteParams {
   params: Promise<{ id: string }>
@@ -9,10 +9,10 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params
-    const user = await authenticateRequest(request)
+    const authResult = await authenticateRequest(request)
 
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error || "No autenticado" }, { status: 401 })
     }
 
     // Obtener información del paciente
@@ -106,10 +106,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params
-    const user = await authenticateRequest(request)
+    const authResult = await authenticateRequest(request)
 
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error || "No autenticado" }, { status: 401 })
     }
 
     const body = await request.json()
@@ -158,14 +158,14 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
     const { id } = await params
-    const user = await authenticateRequest(request)
+    const authResult = await authenticateRequest(request)
 
-    if (!user) {
-      return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+    if (!authResult.success) {
+      return NextResponse.json({ error: authResult.error || "No autenticado" }, { status: 401 })
     }
 
     // Solo administradores pueden eliminar pacientes
-    if (user.rol !== "administrador") {
+    if (authResult.user!.rol !== "administrador") {
       return NextResponse.json({ error: "Acceso denegado" }, { status: 403 })
     }
 

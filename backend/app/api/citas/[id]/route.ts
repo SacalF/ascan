@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { executeQuery } from "@/lib/mysql"
-import { authMiddleware } from "@/lib/auth-middleware"
+import { authenticateRequest } from "@/lib/auth-middleware-improved"
 
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const authResult = await authMiddleware(request)
+    const authResult = await authenticateRequest(request)
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: 401 })
     }
@@ -33,7 +33,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   try {
     console.log("[BACKEND] Iniciando actualización de cita:", params.id)
     
-    const authResult = await authMiddleware(request)
+    const authResult = await authenticateRequest(request)
     if (!authResult.success) {
       console.log("[BACKEND] Error de autenticación:", authResult.error)
       return NextResponse.json({ error: authResult.error }, { status: 401 })
@@ -111,7 +111,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
 
 export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
   try {
-    const authResult = await authMiddleware(request)
+    const authResult = await authenticateRequest(request)
     if (!authResult.success) {
       return NextResponse.json({ error: authResult.error }, { status: 401 })
     }
