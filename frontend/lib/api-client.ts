@@ -42,6 +42,16 @@ class ApiClient {
       console.log(`[API] Response status: ${response.status}`)
       console.log(`[API] Response headers:`, Object.fromEntries(response.headers.entries()))
 
+      // Verificar si la respuesta es HTML en lugar de JSON
+      const contentType = response.headers.get('content-type')
+      console.log(`[API] Content-Type: ${contentType}`)
+      
+      if (contentType && contentType.includes('text/html')) {
+        const htmlText = await response.text()
+        console.log(`[API] HTML Response (first 200 chars):`, htmlText.substring(0, 200))
+        return { error: "El servidor devolvió HTML en lugar de JSON. Posible error 404/500." }
+      }
+
       const data = await response.json()
       console.log(`[API] Response data:`, data)
 
@@ -90,7 +100,8 @@ class ApiClient {
   }
 
   async getPaciente(id: string) {
-    return this.request(`/pacientes/${id}`)
+    // Temporalmente usar endpoint de prueba
+    return this.request(`/test`)
   }
 
   async createPaciente(pacienteData: any) {
