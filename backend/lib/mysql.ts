@@ -12,10 +12,7 @@ const dbConfig = {
   waitForConnections: true,
   connectionLimit: 5, // Reducido drásticamente para evitar sobrecarga
   queueLimit: 5, // Cola pequeña
-  acquireTimeout: 10000, // 10 segundos timeout para adquirir conexión
-  timeout: 10000, // 10 segundos timeout para queries
   idleTimeout: 60000, // 1 minuto para cerrar conexiones inactivas
-  reconnect: true,
   charset: 'utf8mb4',
   timezone: '+00:00',
   // Configuración SSL segura
