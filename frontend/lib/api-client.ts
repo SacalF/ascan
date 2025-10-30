@@ -101,8 +101,7 @@ class ApiClient {
   }
 
   async getPaciente(id: string) {
-    // Temporalmente usar endpoint de prueba
-    return this.request(`/test`)
+    return this.request(`/pacientes/${id}`)
   }
 
   async createPaciente(pacienteData: any) {

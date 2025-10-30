@@ -24,17 +24,23 @@ export async function POST(request: NextRequest) {
     console.log("Token válido, usuario:", decoded)
 
     const body = await request.json()
+    // Aceptar variantes desde el frontend: contrasena/password y generar nombre_usuario si falta
     const { 
       nombres, 
       apellidos, 
-      nombre_usuario, 
+      nombre_usuario: nombreUsuarioRaw, 
       correo_electronico, 
-      contraseña, 
+      contraseña: contraseniaRaw, 
+      contrasena: contrasenaSinAcento, 
+      password: passwordAlt, 
       telefono, 
       cedula_profesional, 
       especialidad, 
       rol 
     } = body
+
+    const nombre_usuario = nombreUsuarioRaw || (correo_electronico ? String(correo_electronico).split('@')[0] : undefined)
+    const contraseña = contraseniaRaw || contrasenaSinAcento || passwordAlt
 
     console.log("Datos recibidos para crear usuario:", { 
       nombres, apellidos, nombre_usuario, correo_electronico, 

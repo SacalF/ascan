@@ -101,20 +101,23 @@ export async function POST(request: NextRequest) {
     console.log("estado:", estado)
     console.log("paciente_nombre:", paciente_nombre)
 
-    // Convertir fecha ISO a formato MySQL (YYYY-MM-DD HH:mm:ss)
-    const fechaObj = new Date(fecha_hora)
-    console.log("Fecha objeto:", fechaObj)
-    console.log("Fecha local string:", fechaObj.toLocaleString())
-    
-    // Crear formato MySQL manualmente para evitar problemas de zona horaria
-    const year = fechaObj.getFullYear()
-    const month = String(fechaObj.getMonth() + 1).padStart(2, '0')
-    const day = String(fechaObj.getDate()).padStart(2, '0')
-    const hours = String(fechaObj.getHours()).padStart(2, '0')
-    const minutes = String(fechaObj.getMinutes()).padStart(2, '0')
-    const seconds = String(fechaObj.getSeconds()).padStart(2, '0')
-    
-    const fechaHoraMySQL = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    // Convertir a formato MySQL sin desfase horario, usando la hora local proporcionada por el cliente
+    // Si viene como 'YYYY-MM-DDTHH:mm' o 'YYYY-MM-DDTHH:mm:ss', tomamos los componentes literalmente
+    let fechaHoraMySQL: string
+    if (typeof fecha_hora === 'string' && fecha_hora.includes('T')) {
+      const [datePart, timePartRaw] = fecha_hora.split('T')
+      const timePart = (timePartRaw || '').slice(0, 8).padEnd(8, ':00').replace(/^(\d{2}:\d{2})(?:.*)?$/, '$1:00')
+      fechaHoraMySQL = `${datePart} ${timePart}`
+    } else {
+      const fechaObj = new Date(fecha_hora)
+      const year = fechaObj.getFullYear()
+      const month = String(fechaObj.getMonth() + 1).padStart(2, '0')
+      const day = String(fechaObj.getDate()).padStart(2, '0')
+      const hours = String(fechaObj.getHours()).padStart(2, '0')
+      const minutes = String(fechaObj.getMinutes()).padStart(2, '0')
+      const seconds = String(fechaObj.getSeconds()).padStart(2, '0')
+      fechaHoraMySQL = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+    }
     console.log("fecha_hora convertida a MySQL:", fechaHoraMySQL)
 
     // Generar ID único para la cita

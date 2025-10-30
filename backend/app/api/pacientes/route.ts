@@ -115,6 +115,11 @@ export async function POST(request: NextRequest) {
       await connection.beginTransaction()
 
       // Insertar paciente
+      // Normalizar fecha de nacimiento a YYYY-MM-DD
+      const fechaNacimientoSql = typeof fechaNacimiento === 'string' && fechaNacimiento.includes('T')
+        ? fechaNacimiento.split('T')[0]
+        : fechaNacimiento
+
       await connection.execute(
         `INSERT INTO pacientes (
           id_paciente, nombres, apellidos, numero_registro_medico, dpi, edad, sexo,
@@ -123,10 +128,10 @@ export async function POST(request: NextRequest) {
           nombre_responsable, telefono_responsable, usuario_registro, fecha_registro
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())`,
         [
-          pacienteId, nombres, apellidos, numeroExpediente, dpi, edad, sexo,
-          telefono, correoElectronico, direccion, fechaNacimiento, lugarNacimiento,
-          estadoCivil, ocupacion, raza, conyuge, padreMadre, lugarTrabajo,
-          nombreResponsable, telefonoResponsable, user.id_usuario
+          pacienteId, nombres, apellidos, numeroExpediente, dpi || null, edad, sexo,
+          telefono || null, correoElectronico || null, direccion || null, fechaNacimientoSql, lugarNacimiento || null,
+          estadoCivil || null, ocupacion || null, raza || null, conyuge || null, padreMadre || null, lugarTrabajo || null,
+          nombreResponsable || null, telefonoResponsable || null, user.id_usuario
         ],
       )
 
