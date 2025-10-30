@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { pool, verifyToken } from "@/lib/mysql"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     console.log("=== API REPORTES GET - Iniciando ===")

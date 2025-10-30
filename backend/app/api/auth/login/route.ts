@@ -3,6 +3,8 @@ import { executeQuery, verifyPassword, generateToken, generateUUID } from "@/lib
 import { logLogin } from "@/lib/audit-logger"
 import { checkRateLimit, recordAttempt } from "@/lib/rate-limiter"
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     // Verificar rate limiting

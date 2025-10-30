@@ -2,6 +2,8 @@ import { type NextRequest, NextResponse } from "next/server"
 import { pool, generateUUID } from "@/lib/mysql"
 import { authenticateRequest } from "@/lib/auth-middleware"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const user = await authenticateRequest(request)

@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { pool, hashPassword, generateUUID } from "@/lib/mysql"
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()

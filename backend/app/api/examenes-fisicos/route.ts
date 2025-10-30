@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { executeQuery } from "@/lib/mysql"
 import { authenticateRequest } from "@/lib/auth-middleware"
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     const authResult = await authenticateRequest(request)

@@ -3,6 +3,8 @@ import { executeQuery } from "@/lib/mysql"
 import { authenticateRequest } from "@/lib/auth-middleware"
 import { logUpdate, logDelete } from "@/lib/audit-logger"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
   try {
     const authResult = await authenticateRequest(request)

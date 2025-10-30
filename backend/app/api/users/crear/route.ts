@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { pool, verifyToken, hashPassword } from "@/lib/mysql"
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     console.log("=== API USERS CREAR POST - Iniciando ===")

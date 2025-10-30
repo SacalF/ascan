@@ -3,6 +3,8 @@ import { executeQuery } from "@/lib/mysql"
 import { authenticateRequest } from "@/lib/auth-middleware-improved"
 import { DigitalOceanSpacesService } from "@/lib/digitalocean-spaces"
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(request: NextRequest) {
   try {
     const authResult = await authenticateRequest(request)

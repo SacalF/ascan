@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { executeQuery } from "@/lib/mysql"
 import { authenticateRequest } from "@/lib/auth-middleware"
 
+export const dynamic = 'force-dynamic'
+
 // Función para generar UUID
 function generateUUID() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
