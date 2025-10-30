@@ -37,9 +37,10 @@ class ApiClient {
 
   // Auth methods
   async login(email: string, password: string, rol: string) {
+    // El backend espera 'correoElectronico', no 'email'
     return this.request("/auth/login", {
       method: "POST",
-      body: JSON.stringify({ email, password, rol }),
+      body: JSON.stringify({ correoElectronico: email, password, rol }),
     })
   }
 
