@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { ArrowLeft, Activity, User } from "lucide-react"
+import { ArrowLeft, Activity, User, Image as ImageIcon, X } from "lucide-react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { apiClient } from "@/lib/api-client"
@@ -34,6 +34,8 @@ export default function SeguimientoPageClient() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [selectedImages, setSelectedImages] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
 
   // Función para obtener la fecha local en formato YYYY-MM-DD
   const getLocalDateString = () => {
@@ -91,6 +93,52 @@ export default function SeguimientoPageClient() {
     cargarPaciente()
   }, [pacienteId, tieneAcceso])
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    
+    // Validar tipos de archivo (solo imágenes)
+    const allowedTypes = ["image/jpeg", "image/png", "image/jpg", "image/gif", "image/webp"]
+    const invalidFiles = files.filter(file => !allowedTypes.includes(file.type))
+    
+    if (invalidFiles.length > 0) {
+      setError("Solo se permiten archivos de imagen (JPG, PNG, GIF, WEBP)")
+      return
+    }
+
+    // Validar tamaño (máximo 5MB por imagen)
+    const oversizedFiles = files.filter(file => file.size > 5 * 1024 * 1024)
+    if (oversizedFiles.length > 0) {
+      setError("Cada imagen no puede ser mayor a 5MB")
+      return
+    }
+
+    // Limitar a 10 imágenes máximo
+    if (selectedImages.length + files.length > 10) {
+      setError("Máximo 10 imágenes permitidas")
+      return
+    }
+
+    setError(null)
+
+    // Agregar nuevas imágenes
+    const newImages = [...selectedImages, ...files]
+    setSelectedImages(newImages)
+
+    // Crear previews para las nuevas imágenes
+    files.forEach(file => {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setImagePreviews(prev => [...prev, e.target?.result as string])
+      }
+      reader.readAsDataURL(file)
+    })
+  }
+
+  const removeImage = (index: number) => {
+    setSelectedImages(prev => prev.filter((_, i) => i !== index))
+    setImagePreviews(prev => prev.filter((_, i) => i !== index))
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!pacienteId) return
@@ -99,22 +147,43 @@ export default function SeguimientoPageClient() {
       setSubmitting(true)
       setError(null)
 
-      // Crear consulta de seguimiento
-      const seguimientoData = {
-        paciente_id: pacienteId,
-        medico_id: user?.id_usuario,
-        fecha: formData.fecha,
-        medico: formData.medico,
-        evolucion: formData.evolucion,
-        notas: formData.notas,
-        tratamiento_actual: formData.tratamiento_actual
+      // Crear FormData para enviar datos y archivos
+      const formDataToSend = new FormData()
+      
+      // Agregar datos de seguimiento
+      formDataToSend.append("paciente_id", pacienteId)
+      formDataToSend.append("medico_id", user?.id_usuario || "")
+      formDataToSend.append("fecha", formData.fecha)
+      formDataToSend.append("medico", formData.medico)
+      formDataToSend.append("evolucion", formData.evolucion || "")
+      formDataToSend.append("notas", formData.notas || "")
+      formDataToSend.append("tratamiento_actual", formData.tratamiento_actual || "")
+
+      // Agregar imágenes
+      selectedImages.forEach((image, index) => {
+        formDataToSend.append(`imagen_${index}`, image)
+      })
+      formDataToSend.append("imagenes_count", String(selectedImages.length))
+
+      console.log("Datos de seguimiento a enviar:", { paciente_id: pacienteId, fecha: formData.fecha, medico: formData.medico })
+
+      // Enviar usando fetch directamente para FormData
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+      const response = await fetch(`${baseUrl}/api/consultas/seguimiento`, {
+        method: "POST",
+        body: formDataToSend,
+        credentials: 'include'
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        setError(errorData.error || "Error al crear la consulta de seguimiento")
+        return
       }
 
-      console.log("Datos de seguimiento a enviar:", seguimientoData)
-      console.log("FormData completo:", formData)
-
-      const result = await apiClient.createConsultaSeguimiento(seguimientoData)
+      const result = await response.json()
       console.log("Resultado de la API:", result)
+      
       if (result.error) {
         setError(result.error)
         return
@@ -130,6 +199,8 @@ export default function SeguimientoPageClient() {
         notas: "",
         tratamiento_actual: ""
       })
+      setSelectedImages([])
+      setImagePreviews([])
     } catch (error) {
       console.error("Error creando seguimiento:", error)
       setError("Error al crear la consulta de seguimiento")
@@ -350,6 +421,49 @@ export default function SeguimientoPageClient() {
                     placeholder="Describe el tratamiento actual y modificaciones"
                     rows={3}
                   />
+                </div>
+
+                {/* Subida de Imágenes */}
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="imagenes" className="flex items-center gap-2">
+                      <ImageIcon className="h-4 w-4" />
+                      Imágenes de la Consulta
+                    </Label>
+                    <p className="text-sm text-gray-600 mb-2">
+                      Puedes agregar hasta 10 imágenes (JPG, PNG, GIF, WEBP - máximo 5MB cada una)
+                    </p>
+                    <Input
+                      id="imagenes"
+                      type="file"
+                      accept="image/jpeg,image/png,image/jpg,image/gif,image/webp"
+                      multiple
+                      onChange={handleImageChange}
+                      className="cursor-pointer"
+                    />
+                  </div>
+
+                  {/* Vista previa de imágenes */}
+                  {imagePreviews.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative group">
+                          <img
+                            src={preview}
+                            alt={`Preview ${index + 1}`}
+                            className="w-full h-32 object-cover rounded-lg border border-gray-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex gap-4">

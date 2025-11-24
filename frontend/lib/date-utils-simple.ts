@@ -54,10 +54,108 @@ export function formatDateShort(dateString: string): string {
 }
 
 /**
+ * Parsea un timestamp de MySQL (YYYY-MM-DD HH:mm:ss) o fecha DATE (YYYY-MM-DD) como hora local
+ * Los timestamps y fechas de MySQL deben tratarse como hora local, no UTC
+ */
+function parseMySQLTimestamp(dateString: string): Date {
+  if (!dateString) {
+    return new Date(NaN)
+  }
+
+  // Si viene en formato MySQL DATE: YYYY-MM-DD (solo fecha, sin hora)
+  const dateOnlyPattern = /^(\d{4})-(\d{2})-(\d{2})$/
+  const dateOnlyMatch = dateString.match(dateOnlyPattern)
+  
+  if (dateOnlyMatch) {
+    const [, year, month, day] = dateOnlyMatch
+    // Crear fecha en zona horaria local (sin hora, solo fecha)
+    // Esto evita problemas de zona horaria cuando se parsea como UTC
+    return new Date(
+      parseInt(year),
+      parseInt(month) - 1, // Los meses son 0-indexados
+      parseInt(day)
+    )
+  }
+
+  // Si viene en formato MySQL TIMESTAMP: YYYY-MM-DD HH:mm:ss
+  const mysqlPattern = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/
+  const match = dateString.match(mysqlPattern)
+  
+  if (match) {
+    const [, year, month, day, hour, minute, second] = match
+    // Crear fecha en zona horaria local
+    return new Date(
+      parseInt(year),
+      parseInt(month) - 1, // Los meses son 0-indexados
+      parseInt(day),
+      parseInt(hour),
+      parseInt(minute),
+      parseInt(second)
+    )
+  }
+
+  // Si viene en formato ISO con 'Z' (UTC), convertir a local
+  if (dateString.includes('Z') || dateString.includes('+') || (dateString.includes('T') && dateString.endsWith('00:00:00'))) {
+    const date = new Date(dateString)
+    // Si el timestamp tiene 'Z' o es UTC, ajustar a hora local
+    const localTime = date.getTime() - (date.getTimezoneOffset() * 60000)
+    return new Date(localTime)
+  }
+
+  // Fallback: Si parece una fecha ISO sin zona horaria, tratarla como local
+  // Esto maneja casos como "2025-11-18T00:00:00" sin Z
+  if (dateString.includes('T') && !dateString.includes('Z') && !dateString.match(/[+-]\d{2}:?\d{2}$/)) {
+    // Es una fecha ISO sin zona horaria, tratarla como local
+    const parts = dateString.split('T')
+    if (parts.length === 2) {
+      const [datePart, timePart] = parts
+      const dateMatch = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+      const timeMatch = timePart.match(/^(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?/)
+      if (dateMatch && timeMatch) {
+        const [, year, month, day] = dateMatch
+        const [, hour, minute, second] = timeMatch
+        return new Date(
+          parseInt(year),
+          parseInt(month) - 1,
+          parseInt(day),
+          parseInt(hour),
+          parseInt(minute),
+          parseInt(second)
+        )
+      }
+    }
+  }
+
+  // Fallback a Date normal (último recurso)
+  const date = new Date(dateString)
+  // Si el resultado parece estar en UTC (día anterior) para una fecha DATE simple, parsearla manualmente
+  if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    // Es una fecha DATE simple, ya debería haberse manejado arriba, pero por si acaso
+    const simpleDateMatch = dateString.match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (simpleDateMatch) {
+      const [, year, month, day] = simpleDateMatch
+      return new Date(
+        parseInt(year),
+        parseInt(month) - 1,
+        parseInt(day)
+      )
+    }
+  }
+  return date
+}
+
+/**
  * Formatea fecha para mostrar en listas (formato largo)
+ * Maneja correctamente timestamps de MySQL como hora local
  */
 export function formatDateLong(dateString: string): string {
-  return formatDate(dateString, {
+  const date = parseMySQLTimestamp(dateString)
+  
+  if (isNaN(date.getTime())) {
+    return 'Fecha inválida'
+  }
+
+  return date.toLocaleDateString('es', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',

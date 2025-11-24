@@ -236,16 +236,16 @@ export default function FormularioMejorado() {
       setLoading(true)
       setError(null)
 
-      // Crear fecha y hora en zona horaria local
-      const fechaHora = new Date(`${formData.fecha}T${formData.hora}:00`)
+      // Crear fecha y hora en formato MySQL directamente sin conversión de zona horaria
+      // Formato: YYYY-MM-DD HH:mm:ss
+      const fechaHoraMySQL = `${formData.fecha} ${formData.hora}:00`
       console.log("=== CREANDO CITA ===")
       console.log("Fecha seleccionada:", formData.fecha)
       console.log("Hora seleccionada:", formData.hora)
-      console.log("Fecha completa:", fechaHora)
-      console.log("Fecha ISO:", fechaHora.toISOString())
+      console.log("Fecha hora MySQL:", fechaHoraMySQL)
       
       const citaData = {
-        fecha_hora: fechaHora.toISOString(),
+        fecha_hora: fechaHoraMySQL,
         paciente_id: formData.paciente_id || null,
         medico_id: formData.medico_id,
         motivo: formData.motivo,

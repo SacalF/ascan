@@ -65,6 +65,7 @@ export interface ConsultaCompleta {
   numero_registro_medico?: string
   fecha_nacimiento?: string
   sexo?: string
+  imagenes?: string | string[]
 }
 
 export function combinarDatosConsulta(
@@ -74,8 +75,9 @@ export function combinarDatosConsulta(
   paciente?: any
 ): ConsultaCompleta {
   return {
-    // Datos de consulta inicial
+    // Datos de consulta inicial (incluye imagenes si está presente)
     ...consultaInicial,
+    imagenes: consultaInicial?.imagenes,
     
     // Datos de valoración si están disponibles
     ...(valoracion && {

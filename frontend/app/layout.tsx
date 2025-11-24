@@ -11,6 +11,10 @@ export const metadata: Metadata = {
   title: "ASCAN - Sistema Oncológico",
   description: "Sistema de gestión oncológica para ASCAN",
   generator: "v0.app",
+  icons: {
+    icon: "/ascan-logo.png",
+    apple: "/ascan-logo.png",
+  },
 }
 
 export default function RootLayout({

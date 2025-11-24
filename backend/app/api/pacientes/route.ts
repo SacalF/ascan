@@ -55,18 +55,29 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log("=== API PACIENTES POST - Iniciando ===")
     const authResult = await authenticateRequest(request)
     if (!authResult.success) {
+      console.error("Error de autenticación:", authResult.error)
       return NextResponse.json({ error: authResult.error || "No autenticado" }, { status: 401 })
     }
 
-    const user = authResult.user!
+    if (!authResult.user) {
+      console.error("Usuario no encontrado en authResult")
+      return NextResponse.json({ error: "Usuario no autenticado" }, { status: 401 })
+    }
+
+    const user = authResult.user
+    console.log("Usuario autenticado:", user.nombres, user.id_usuario)
 
     const body = await request.json()
+    console.log("Datos recibidos del body:", Object.keys(body))
+    
     const {
       nombres,
       apellidos,
       dpi,
+      numeroExpediente,
       fechaNacimiento,
       sexo,
       telefono,
@@ -84,33 +95,69 @@ export async function POST(request: NextRequest) {
     } = body
 
     // Validaciones básicas
-    if (!nombres || !apellidos || !fechaNacimiento || !sexo) {
+    if (!nombres || !apellidos || !fechaNacimiento || !sexo || !numeroExpediente) {
+      console.error("Campos requeridos faltantes:", { 
+        nombres: !!nombres, 
+        apellidos: !!apellidos, 
+        fechaNacimiento: !!fechaNacimiento, 
+        sexo: !!sexo,
+        numeroExpediente: !!numeroExpediente
+      })
       return NextResponse.json(
-        { error: "Nombres, apellidos, fecha de nacimiento y sexo son requeridos" },
+        { error: "Nombres, apellidos, número de expediente, fecha de nacimiento y sexo son requeridos" },
         { status: 400 },
       )
     }
 
     const connection = await pool.getConnection()
+    console.log("Conexión a BD obtenida")
 
     try {
       const pacienteId = generateUUID()
+      console.log("ID de paciente generado:", pacienteId)
 
-      // Calcular edad
-      const fechaNac = new Date(fechaNacimiento)
-      const hoy = new Date()
-      const edad = hoy.getFullYear() - fechaNac.getFullYear()
-
-      // Generar número de expediente único
-      const [lastExpediente] = await connection.execute(
-        "SELECT numero_registro_medico FROM pacientes ORDER BY created_at DESC LIMIT 1",
-      )
-
-      let numeroExpediente = "001"
-      if (Array.isArray(lastExpediente) && lastExpediente.length > 0) {
-        const lastNumber = Number.parseInt((lastExpediente[0] as any).numero_registro_medico) || 0
-        numeroExpediente = String(lastNumber + 1).padStart(3, "0")
+      // Calcular edad de forma más segura
+      let edad = 0
+      try {
+        const fechaNac = new Date(fechaNacimiento)
+        if (isNaN(fechaNac.getTime())) {
+          console.warn("Fecha de nacimiento inválida, usando edad 0")
+          edad = 0
+        } else {
+          const hoy = new Date()
+          edad = hoy.getFullYear() - fechaNac.getFullYear()
+          const mes = hoy.getMonth() - fechaNac.getMonth()
+          if (mes < 0 || (mes === 0 && hoy.getDate() < fechaNac.getDate())) {
+            edad--
+          }
+        }
+      } catch (error) {
+        console.warn("Error calculando edad:", error)
+        edad = 0
       }
+      console.log("Edad calculada:", edad)
+
+      // Validar que el número de expediente no esté duplicado
+      if (numeroExpediente) {
+        try {
+          const [existingPaciente] = await connection.execute(
+            "SELECT id_paciente FROM pacientes WHERE numero_registro_medico = ?",
+            [numeroExpediente]
+          )
+          
+          if (Array.isArray(existingPaciente) && existingPaciente.length > 0) {
+            console.error("Número de expediente duplicado:", numeroExpediente)
+            return NextResponse.json(
+              { error: `El número de expediente ${numeroExpediente} ya está en uso. Por favor, use otro número.` },
+              { status: 400 },
+            )
+          }
+        } catch (expError: any) {
+          console.warn("Error validando número de expediente:", expError.message)
+          // Continuar si hay error en la validación
+        }
+      }
+      console.log("Número de expediente validado:", numeroExpediente)
 
       await connection.beginTransaction()
 
@@ -163,37 +210,44 @@ export async function POST(request: NextRequest) {
 
       await connection.commit()
 
-      // Registrar en historial
-      const datosNuevos = {
-        nombres,
-        apellidos,
-        numero_registro_medico: numeroExpediente,
-        dpi,
-        fecha_nacimiento: fechaNacimiento,
-        sexo,
-        telefono,
-        correo_electronico: correoElectronico,
-        direccion,
-        lugar_nacimiento: lugarNacimiento,
-        estado_civil: estadoCivil,
-        ocupacion,
-        raza,
-        conyuge,
-        padre_madre: padreMadre,
-        lugar_trabajo: lugarTrabajo,
-        nombre_responsable: nombreResponsable,
-        telefono_responsable: telefonoResponsable
-      }
+      // Registrar en historial (no crítico si falla)
+      try {
+        const datosNuevos = {
+          nombres,
+          apellidos,
+          numero_registro_medico: numeroExpediente,
+          dpi,
+          fecha_nacimiento: fechaNacimiento,
+          sexo,
+          telefono,
+          correo_electronico: correoElectronico,
+          direccion,
+          lugar_nacimiento: lugarNacimiento,
+          estado_civil: estadoCivil,
+          ocupacion,
+          raza,
+          conyuge,
+          padre_madre: padreMadre,
+          lugar_trabajo: lugarTrabajo,
+          nombre_responsable: nombreResponsable,
+          telefono_responsable: telefonoResponsable
+        }
 
-      await logCreate(
-        user.id_usuario,
-        'pacientes',
-        `Nuevo paciente registrado: ${nombres} ${apellidos} (${numeroExpediente})`,
-        datosNuevos
-      )
+        await logCreate(
+          user.id_usuario,
+          'pacientes',
+          `Nuevo paciente registrado: ${nombres} ${apellidos} (${numeroExpediente})`,
+          datosNuevos
+        )
+        console.log("Registro en historial exitoso")
+      } catch (historialError) {
+        console.warn("Error registrando en historial (no crítico):", historialError)
+        // No fallar la operación por error de historial
+      }
 
       // Obtener el paciente creado
       const [newPaciente] = await connection.execute("SELECT * FROM pacientes WHERE id_paciente = ?", [pacienteId])
+      console.log("Paciente creado exitosamente:", pacienteId)
 
       return NextResponse.json(
         {
@@ -202,14 +256,40 @@ export async function POST(request: NextRequest) {
         },
         { status: 201 },
       )
-    } catch (error) {
+    } catch (error: any) {
       await connection.rollback()
-      throw error
+      console.error("Error en transacción de base de datos:", error)
+      console.error("Error code:", error.code)
+      console.error("Error message:", error.message)
+      console.error("Error sqlState:", error.sqlState)
+      console.error("Stack trace:", error.stack)
+      
+      // Proporcionar mensaje de error más descriptivo
+      let errorMessage = "Error interno del servidor"
+      if (error.code === 'ER_DUP_ENTRY') {
+        errorMessage = "Ya existe un paciente con este DPI o número de registro"
+      } else if (error.code === 'ER_NO_SUCH_TABLE') {
+        errorMessage = "Error de configuración de base de datos. Contacte al administrador."
+      } else if (error.sqlState) {
+        errorMessage = `Error de base de datos: ${error.message}`
+      }
+      
+      throw new Error(errorMessage)
     } finally {
       connection.release()
     }
-  } catch (error) {
-    console.error("Error registrando paciente:", error)
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+  } catch (error: any) {
+    console.error("=== ERROR REGISTRANDO PACIENTE ===")
+    console.error("Error completo:", error)
+    console.error("Error message:", error?.message)
+    console.error("Error stack:", error?.stack)
+    
+    return NextResponse.json(
+      { 
+        error: error?.message || "Error interno del servidor",
+        details: process.env.NODE_ENV === 'development' ? error?.stack : undefined
+      }, 
+      { status: 500 }
+    )
   }
 }

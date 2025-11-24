@@ -584,7 +584,7 @@ export default function ExpedientePacientePage({
                                 Valoración
                               </Badge>
                               <span className="text-sm text-gray-600">
-                                {formatDateLong(valoracion.fecha_registro)}
+                                {formatDateLong(valoracion.fecha_valoracion || valoracion.fecha_registro)}
                               </span>
                             </div>
                             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">

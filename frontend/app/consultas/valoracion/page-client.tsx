@@ -34,8 +34,18 @@ export default function ValoracionPageClient() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
+  // Función para obtener la fecha local en formato YYYY-MM-DD
+  const getLocalDateString = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   // Form data para valoración
   const [valoracionData, setValoracionData] = useState({
+    fecha_valoracion: getLocalDateString(),
     peso: "",
     talla: "",
     pulso: "",
@@ -82,6 +92,7 @@ export default function ValoracionPageClient() {
       const valoracionResult = await apiClient.createValoracion({
         paciente_id: pacienteId,
         enfermera_id: user?.id_usuario,
+        fecha_valoracion: valoracionData.fecha_valoracion || null,
         peso: valoracionData.peso ? parseFloat(valoracionData.peso) : null,
         talla: valoracionData.talla ? parseFloat(valoracionData.talla) : null,
         pulso: valoracionData.pulso ? parseInt(valoracionData.pulso) : null,
@@ -99,6 +110,7 @@ export default function ValoracionPageClient() {
       
       // Limpiar formulario
       setValoracionData({
+        fecha_valoracion: getLocalDateString(),
         peso: "",
         talla: "",
         pulso: "",
@@ -270,6 +282,16 @@ export default function ValoracionPageClient() {
                 {/* Valoración Médica */}
                 <div className="space-y-4">
                   <h4 className="font-semibold text-gray-900 border-b pb-2">EXAMEN - Valoración</h4>
+                  <div className="mb-4">
+                    <Label htmlFor="fecha_valoracion">Fecha de Valoración *</Label>
+                    <Input
+                      id="fecha_valoracion"
+                      type="date"
+                      required
+                      value={valoracionData.fecha_valoracion}
+                      onChange={(e) => setValoracionData(prev => ({ ...prev, fecha_valoracion: e.target.value }))}
+                    />
+                  </div>
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div>
                       <Label htmlFor="peso">Peso (lbs)</Label>

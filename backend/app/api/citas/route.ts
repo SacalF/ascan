@@ -102,21 +102,40 @@ export async function POST(request: NextRequest) {
     console.log("paciente_nombre:", paciente_nombre)
 
     // Convertir a formato MySQL sin desfase horario, usando la hora local proporcionada por el cliente
-    // Si viene como 'YYYY-MM-DDTHH:mm' o 'YYYY-MM-DDTHH:mm:ss', tomamos los componentes literalmente
+    // Si viene como 'YYYY-MM-DD HH:mm:ss' (formato MySQL), usarlo directamente
+    // Si viene como 'YYYY-MM-DDTHH:mm' o 'YYYY-MM-DDTHH:mm:ss', convertir sin interpretar zona horaria
     let fechaHoraMySQL: string
-    if (typeof fecha_hora === 'string' && fecha_hora.includes('T')) {
-      const [datePart, timePartRaw] = fecha_hora.split('T')
-      const timePart = (timePartRaw || '').slice(0, 8).padEnd(8, ':00').replace(/^(\d{2}:\d{2})(?:.*)?$/, '$1:00')
-      fechaHoraMySQL = `${datePart} ${timePart}`
+    if (typeof fecha_hora === 'string') {
+      // Si ya está en formato MySQL (YYYY-MM-DD HH:mm:ss)
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(fecha_hora)) {
+        fechaHoraMySQL = fecha_hora
+      }
+      // Si viene en formato ISO con T (YYYY-MM-DDTHH:mm o YYYY-MM-DDTHH:mm:ss)
+      else if (fecha_hora.includes('T')) {
+        const [datePart, timePartRaw] = fecha_hora.split('T')
+        // Extraer solo la parte de tiempo sin zona horaria (Z o +HH:MM)
+        const timePartClean = timePartRaw.replace(/[Z+-].*$/, '').slice(0, 8)
+        const timePart = timePartClean.padEnd(8, ':00').replace(/^(\d{2}:\d{2})(?::(\d{2}))?$/, (match, hours, minutes, seconds) => {
+          return `${hours}:${minutes || '00'}:${seconds || '00'}`
+        })
+        fechaHoraMySQL = `${datePart} ${timePart}`
+      }
+      // Si viene en otro formato, intentar parsearlo como Date (último recurso)
+      else {
+        const fechaObj = new Date(fecha_hora)
+        if (isNaN(fechaObj.getTime())) {
+          throw new Error("Formato de fecha inválido")
+        }
+        const year = fechaObj.getFullYear()
+        const month = String(fechaObj.getMonth() + 1).padStart(2, '0')
+        const day = String(fechaObj.getDate()).padStart(2, '0')
+        const hours = String(fechaObj.getHours()).padStart(2, '0')
+        const minutes = String(fechaObj.getMinutes()).padStart(2, '0')
+        const seconds = String(fechaObj.getSeconds()).padStart(2, '0')
+        fechaHoraMySQL = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+      }
     } else {
-      const fechaObj = new Date(fecha_hora)
-      const year = fechaObj.getFullYear()
-      const month = String(fechaObj.getMonth() + 1).padStart(2, '0')
-      const day = String(fechaObj.getDate()).padStart(2, '0')
-      const hours = String(fechaObj.getHours()).padStart(2, '0')
-      const minutes = String(fechaObj.getMinutes()).padStart(2, '0')
-      const seconds = String(fechaObj.getSeconds()).padStart(2, '0')
-      fechaHoraMySQL = `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`
+      throw new Error("fecha_hora debe ser un string")
     }
     console.log("fecha_hora convertida a MySQL:", fechaHoraMySQL)
 

@@ -6,6 +6,16 @@ import { Sidebar } from "@/components/dashboard/sidebar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { 
   ArrowLeft, 
   User, 
@@ -17,11 +27,14 @@ import {
   Activity, 
   Microscope,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Edit,
+  Trash2
 } from "lucide-react"
 import Link from "next/link"
 import { apiClient } from "@/lib/api-client"
 import { formatDateLong } from "@/lib/date-utils-simple"
+import { useAuth } from "@/components/auth-provider"
 
 interface Paciente {
   id_paciente: string
@@ -53,9 +66,12 @@ interface VerPacienteClientProps {
 
 export default function VerPacienteClient({ pacienteId }: VerPacienteClientProps) {
   const router = useRouter()
+  const { user } = useAuth()
   const [paciente, setPaciente] = useState<Paciente | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [mostrarConfirmacionEliminar, setMostrarConfirmacionEliminar] = useState(false)
+  const [eliminando, setEliminando] = useState(false)
 
   useEffect(() => {
     cargarPaciente()
@@ -107,6 +123,28 @@ export default function VerPacienteClient({ pacienteId }: VerPacienteClientProps
     return edad
   }
 
+  const handleEliminar = async () => {
+    try {
+      setEliminando(true)
+      const result = await apiClient.deletePaciente(pacienteId)
+      
+      if (result.error) {
+        setError(result.error)
+        setMostrarConfirmacionEliminar(false)
+        return
+      }
+      
+      // Redirigir a la lista de pacientes después de eliminar
+      router.push("/pacientes")
+    } catch (error) {
+      console.error("Error eliminando paciente:", error)
+      setError("Error al eliminar el paciente")
+      setMostrarConfirmacionEliminar(false)
+    } finally {
+      setEliminando(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="flex h-screen bg-gradient-to-br from-primary/5 via-background to-accent/5">
@@ -156,14 +194,6 @@ export default function VerPacienteClient({ pacienteId }: VerPacienteClientProps
                 <h1 className="text-xl font-semibold text-gray-900">Información del Paciente</h1>
               </div>
               <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => router.push(`/pacientes/${pacienteId}/editar`)}
-                  className="border-green-300 text-green-600 hover:bg-green-50"
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Editar
-                </Button>
                 <Button 
                   variant="outline" 
                   onClick={() => router.push("/pacientes")}
@@ -335,28 +365,32 @@ export default function VerPacienteClient({ pacienteId }: VerPacienteClientProps
                 </CardHeader>
                 <CardContent className="space-y-3">
                   <Button 
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => router.push(`/consultas/${pacienteId}`)}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => router.push(`/pacientes/${pacienteId}/editar`)}
                   >
-                    <FileText className="h-4 w-4 mr-2" />
-                    Ver Expediente
+                    <Edit className="h-4 w-4 mr-2" />
+                    Editar
                   </Button>
-                  <Button 
-                    variant="outline"
-                    className="w-full border-green-300 text-green-600 hover:bg-green-50"
-                    onClick={() => router.push(`/agendar-cita?paciente_id=${pacienteId}`)}
-                  >
-                    <Calendar className="h-4 w-4 mr-2" />
-                    Agendar Cita
-                  </Button>
-                  <Button 
-                    variant="outline"
-                    className="w-full border-purple-300 text-purple-600 hover:bg-purple-50"
-                    onClick={() => router.push(`/laboratorio?paciente_id=${pacienteId}`)}
-                  >
-                    <Microscope className="h-4 w-4 mr-2" />
-                    Ver Laboratorios
-                  </Button>
+                  {user?.rol === "administrador" && (
+                    <Button 
+                      variant="outline"
+                      className="w-full border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+                      onClick={() => setMostrarConfirmacionEliminar(true)}
+                      disabled={eliminando}
+                    >
+                      {eliminando ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Eliminando...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Eliminar
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
 
@@ -380,6 +414,39 @@ export default function VerPacienteClient({ pacienteId }: VerPacienteClientProps
           </div>
         </main>
       </div>
+
+      {/* Dialog de confirmación para eliminar */}
+      <AlertDialog open={mostrarConfirmacionEliminar} onOpenChange={setMostrarConfirmacionEliminar}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente el paciente{" "}
+              <strong>{paciente?.nombres} {paciente?.apellidos}</strong> del sistema.
+              {paciente?.numero_registro_medico && (
+                <> (Registro Médico: {paciente.numero_registro_medico})</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={eliminando}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleEliminar} 
+              disabled={eliminando} 
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {eliminando ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Eliminando...
+                </>
+              ) : (
+                "Eliminar"
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

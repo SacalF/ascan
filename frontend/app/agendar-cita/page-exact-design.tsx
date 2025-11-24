@@ -69,7 +69,6 @@ export default function AgendarCitaContent() {
         const resultPacientes = await apiClient.getPacientes()
         
         if (resultPacientes.data) {
-          console.log('Pacientes cargados:', resultPacientes.data.length || 0)
           setPacientes(Array.isArray(resultPacientes.data) ? resultPacientes.data : [])
         } else {
           throw new Error(resultPacientes.error || 'Error al cargar pacientes')
@@ -80,7 +79,6 @@ export default function AgendarCitaContent() {
         const resultMedicos = await apiClient.getMedicos()
         
         if (resultMedicos.data) {
-          console.log('Médicos cargados:', resultMedicos.data.length || 0)
           setMedicos(Array.isArray(resultMedicos.data) ? resultMedicos.data : [])
         } else {
           throw new Error(resultMedicos.error || 'Error al cargar médicos')
@@ -109,11 +107,12 @@ export default function AgendarCitaContent() {
     setError(null)
   
     try {
-      // Combinar fecha y hora
-      const fechaHora = `${formData.fecha}T${formData.hora}:00`
+      // Combinar fecha y hora en formato MySQL directamente sin conversión de zona horaria
+      // Formato: YYYY-MM-DD HH:mm:ss
+      const fechaHoraMySQL = `${formData.fecha} ${formData.hora}:00`
       
       const citaData = {
-        fecha_hora: fechaHora,
+        fecha_hora: fechaHoraMySQL,
         paciente_id: formData.paciente_id || null,
         medico_id: formData.medico_id,
         motivo: formData.motivo,

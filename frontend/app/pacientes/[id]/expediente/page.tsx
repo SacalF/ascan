@@ -107,7 +107,34 @@ export default function ExpedientePage() {
   }
 
   const formatearFechaCorta = (fecha: string) => {
-    return new Date(fecha).toLocaleDateString("es-ES")
+    if (!fecha) return "Sin fecha"
+    
+    // Si viene en formato MySQL: YYYY-MM-DD HH:mm:ss, tratar como hora local
+    const mysqlPattern = /^(\d{4})-(\d{2})-(\d{2})\s+(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?$/
+    const match = fecha.match(mysqlPattern)
+    
+    let date: Date
+    if (match) {
+      const [, year, month, day] = match
+      // Crear fecha en zona horaria local (solo fecha, sin hora)
+      date = new Date(
+        parseInt(year),
+        parseInt(month) - 1, // Los meses son 0-indexados
+        parseInt(day)
+      )
+    } else {
+      date = new Date(fecha)
+    }
+    
+    if (isNaN(date.getTime())) {
+      return "Fecha inválida"
+    }
+    
+    return date.toLocaleDateString("es-ES", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    })
   }
 
   if (loading) {
@@ -188,7 +215,7 @@ export default function ExpedientePage() {
                     ...(consultas?.map((c) => ({ ...c, tipo: "consulta", fecha: c.fecha })) || []),
                     ...(examenes?.map((e) => ({ ...e, tipo: "examen", fecha: e.fecha })) || []),
                     ...(laboratorios?.map((l) => ({ ...l, tipo: "laboratorio", fecha: l.fecha })) || []),
-                    ...(valoraciones?.map((v) => ({ ...v, tipo: "valoracion", fecha: v.fecha })) || []),
+                    ...(valoraciones?.map((v) => ({ ...v, tipo: "valoracion", fecha: v.fecha_valoracion || v.fecha_registro || v.created_at })) || []),
                   ]
                     .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
                     .slice(0, 5)

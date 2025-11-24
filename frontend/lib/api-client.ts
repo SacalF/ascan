@@ -118,6 +118,12 @@ class ApiClient {
     })
   }
 
+  async deletePaciente(id: string) {
+    return this.request(`/pacientes/${id}`, {
+      method: "DELETE",
+    })
+  }
+
   // Citas methods
   async getCitas(fecha?: string, pacienteId?: string) {
     const params = new URLSearchParams()

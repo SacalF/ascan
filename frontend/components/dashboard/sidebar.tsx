@@ -20,6 +20,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { usePermissions } from "@/hooks/use-permissions"
+import AscanLogo from "@/components/ascan-logo"
 
 interface Profile {
   nombre: string
@@ -147,21 +148,32 @@ export function Sidebar() {
       <div className="flex flex-col h-full">
         {/* Header */}
         <div className="p-4 border-b border-border/50">
-          <div className="flex items-center justify-between">
-            {!isCollapsed && (
-              <div className="flex items-center space-x-3">
-                <div className="bg-primary/10 p-2 rounded-lg">
-                  <img src="/ascan-logo.png" alt="ASCAN Logo" className="h-6 w-6 object-contain" />
+          <div className={`flex items-center ${isCollapsed ? 'flex-col space-y-2' : 'justify-between'}`}>
+            {isCollapsed ? (
+              <>
+                <div className="flex justify-center w-full">
+                  <AscanLogo size={32} className="rounded-lg" />
                 </div>
-                <div>
-                  <h2 className="font-semibold text-foreground text-sm">Sistema Clinico</h2>
-                  <p className="text-xs text-muted-foreground">ASCAN</p>
+                <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="h-8 w-8 p-0">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <div className="flex items-center space-x-3">
+                  <div className="bg-primary/10 p-2 rounded-lg">
+                    <AscanLogo size={24} className="rounded-lg" />
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-foreground text-sm">Sistema Clinico</h2>
+                    <p className="text-xs text-muted-foreground">ASCAN</p>
+                  </div>
                 </div>
-              </div>
+                <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="h-8 w-8 p-0">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+              </>
             )}
-            <Button variant="ghost" size="sm" onClick={() => setIsCollapsed(!isCollapsed)} className="h-8 w-8 p-0">
-              {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-            </Button>
           </div>
         </div>
 

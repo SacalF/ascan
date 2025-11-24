@@ -93,8 +93,8 @@ export default function EditarPacienteClient({ pacienteId }: EditarPacienteClien
       const result = await apiClient.getPaciente(pacienteId)
       console.log("📥 [EDITAR] Respuesta completa del API:", result)
       
-      if (result && !result.error) {
-        const responseData = result as any
+      if (result && !result.error && result.data) {
+        const responseData = result.data as any
         console.log("📊 [EDITAR] Datos procesados:", responseData)
         console.log("👤 [EDITAR] Paciente encontrado:", responseData.paciente)
         
@@ -103,27 +103,36 @@ export default function EditarPacienteClient({ pacienteId }: EditarPacienteClien
           console.log("✅ [EDITAR] Estableciendo paciente:", pacienteData)
           setPaciente(pacienteData)
         
-        // Llenar el formulario con los datos del paciente
-        setFormData({
-          numero_registro_medico: pacienteData.numero_registro_medico || "",
-          nombres: pacienteData.nombres || "",
-          apellidos: pacienteData.apellidos || "",
-          dpi: pacienteData.dpi || "",
-          sexo: pacienteData.sexo || "",
-          estado_civil: pacienteData.estado_civil || "",
-          telefono: pacienteData.telefono || "",
-          correo_electronico: pacienteData.correo_electronico || "",
-          direccion: pacienteData.direccion || "",
-          fecha_nacimiento: pacienteData.fecha_nacimiento || "",
-          lugar_nacimiento: pacienteData.lugar_nacimiento || "",
-          ocupacion: pacienteData.ocupacion || "",
-          raza: pacienteData.raza || "",
-          conyuge: pacienteData.conyuge || "",
-          padre_madre: pacienteData.padre_madre || "",
-          lugar_trabajo: pacienteData.lugar_trabajo || "",
-          nombre_responsable: pacienteData.nombre_responsable || "",
-          telefono_responsable: pacienteData.telefono_responsable || ""
-        })
+          // Normalizar fecha_nacimiento para el input date (formato YYYY-MM-DD)
+          let fechaNacimiento = ""
+          if (pacienteData.fecha_nacimiento) {
+            const fecha = new Date(pacienteData.fecha_nacimiento)
+            if (!isNaN(fecha.getTime())) {
+              fechaNacimiento = fecha.toISOString().split('T')[0]
+            }
+          }
+
+          // Llenar el formulario con los datos del paciente
+          setFormData({
+            numero_registro_medico: pacienteData.numero_registro_medico || "",
+            nombres: pacienteData.nombres || "",
+            apellidos: pacienteData.apellidos || "",
+            dpi: pacienteData.dpi || "",
+            sexo: pacienteData.sexo || "",
+            estado_civil: pacienteData.estado_civil || "",
+            telefono: pacienteData.telefono || "",
+            correo_electronico: pacienteData.correo_electronico || "",
+            direccion: pacienteData.direccion || "",
+            fecha_nacimiento: fechaNacimiento,
+            lugar_nacimiento: pacienteData.lugar_nacimiento || "",
+            ocupacion: pacienteData.ocupacion || "",
+            raza: pacienteData.raza || "",
+            conyuge: pacienteData.conyuge || "",
+            padre_madre: pacienteData.padre_madre || "",
+            lugar_trabajo: pacienteData.lugar_trabajo || "",
+            nombre_responsable: pacienteData.nombre_responsable || "",
+            telefono_responsable: pacienteData.telefono_responsable || ""
+          })
         } else {
           console.log("❌ [EDITAR] Paciente vacío o no encontrado:", responseData.paciente)
           setError("Paciente no encontrado en la base de datos")

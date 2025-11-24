@@ -9,25 +9,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ClipboardList, Save, ArrowLeft, Calendar, TrendingUp, FileText, AlertCircle, CheckCircle } from "lucide-react"
+import { ClipboardList, Save, ArrowLeft, Heart, User, Activity, Calendar } from "lucide-react"
 import Link from "next/link"
 
 interface ValoracionForm {
-  fecha: string
-  tipo_valoracion: string
-  evolucion_paciente: string
-  sintomas_actuales: string
-  examen_fisico_actual: string
-  diagnostico_actual: string
-  plan_tratamiento: string
-  medicamentos: string
-  recomendaciones: string
-  observaciones_medicas: string
-  seguimiento: string
-  estado_general: string
-  respuesta_tratamiento: string
+  fecha_valoracion: string
+  peso: string
+  talla: string
+  pulso: string
+  respiracion: string
+  presion_arterial: string
+  temperatura: string
 }
 
 interface PageProps {
@@ -37,6 +29,7 @@ interface PageProps {
 export default function NuevaValoracionPage({ params }: PageProps): ReactElement {
   const router = useRouter()
   const [pacienteId, setPacienteId] = useState<string>("")
+  const [paciente, setPaciente] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [paramsLoaded, setParamsLoaded] = useState(false)
@@ -54,20 +47,43 @@ export default function NuevaValoracionPage({ params }: PageProps): ReactElement
       })
   }, [params])
 
+  useEffect(() => {
+    if (pacienteId) {
+      cargarPaciente()
+    }
+  }, [pacienteId])
+
+  const cargarPaciente = async () => {
+    try {
+      const result = await apiClient.getPaciente(pacienteId)
+      if (result && !result.error && result.data) {
+        const responseData = result.data as any
+        if (responseData.paciente) {
+          setPaciente(responseData.paciente)
+        }
+      }
+    } catch (error) {
+      console.error("Error cargando paciente:", error)
+    }
+  }
+
+  // Función para obtener la fecha local en formato YYYY-MM-DD
+  const getLocalDateString = () => {
+    const now = new Date()
+    const year = now.getFullYear()
+    const month = String(now.getMonth() + 1).padStart(2, '0')
+    const day = String(now.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   const [formData, setFormData] = useState<ValoracionForm>({
-    fecha: new Date().toISOString().split("T")[0],
-    tipo_valoracion: "seguimiento",
-    evolucion_paciente: "",
-    sintomas_actuales: "",
-    examen_fisico_actual: "",
-    diagnostico_actual: "",
-    plan_tratamiento: "",
-    medicamentos: "",
-    recomendaciones: "",
-    observaciones_medicas: "",
-    seguimiento: "",
-    estado_general: "estable",
-    respuesta_tratamiento: "",
+    fecha_valoracion: getLocalDateString(),
+    peso: "",
+    talla: "",
+    pulso: "",
+    respiracion: "",
+    presion_arterial: "",
+    temperatura: "",
   })
 
   const handleInputChange = (field: keyof ValoracionForm, value: string) => {
@@ -84,38 +100,13 @@ export default function NuevaValoracionPage({ params }: PageProps): ReactElement
     try {
       const valoracionData = {
         paciente_id: pacienteId,
-        fecha: formData.fecha,
-        tipo_valoracion: formData.tipo_valoracion,
-        descripcion: `
-EVOLUCIÓN DEL PACIENTE:
-${formData.evolucion_paciente}
-
-SÍNTOMAS ACTUALES:
-${formData.sintomas_actuales}
-
-EXAMEN FÍSICO ACTUAL:
-${formData.examen_fisico_actual}
-
-DIAGNÓSTICO ACTUAL:
-${formData.diagnostico_actual}
-
-RESPUESTA AL TRATAMIENTO:
-${formData.respuesta_tratamiento}
-
-MEDICAMENTOS:
-${formData.medicamentos}
-
-OBSERVACIONES MÉDICAS:
-${formData.observaciones_medicas}
-        `.trim(),
-        recomendaciones: `
-PLAN DE TRATAMIENTO:
-${formData.plan_tratamiento}
-
-RECOMENDACIONES:
-${formData.recomendaciones}
-        `.trim(),
-        seguimiento: formData.seguimiento || null,
+        fecha_valoracion: formData.fecha_valoracion || null,
+        peso: formData.peso ? parseFloat(formData.peso) : null,
+        talla: formData.talla ? parseFloat(formData.talla) : null,
+        pulso: formData.pulso ? parseInt(formData.pulso) : null,
+        respiracion: formData.respiracion ? parseInt(formData.respiracion) : null,
+        presion_arterial: formData.presion_arterial || null,
+        temperatura: formData.temperatura ? parseFloat(formData.temperatura) : null
       }
 
       const result = await apiClient.createValoracion(valoracionData)
@@ -123,6 +114,17 @@ ${formData.recomendaciones}
       if (result.error) {
         throw new Error(result.error)
       }
+
+      // Limpiar formulario
+      setFormData({
+        fecha_valoracion: getLocalDateString(),
+        peso: "",
+        talla: "",
+        pulso: "",
+        respiracion: "",
+        presion_arterial: "",
+        temperatura: "",
+      })
 
       router.push(`/pacientes/${pacienteId}`)
     } catch (error: unknown) {
@@ -168,11 +170,11 @@ ${formData.recomendaciones}
               </Button>
               <div className="flex items-center space-x-3">
                 <div className="bg-primary/10 p-2 rounded-lg">
-                  <ClipboardList className="h-5 w-5 text-primary" />
+                  <Heart className="h-5 w-5 text-primary" />
                 </div>
                 <div>
                   <h1 className="text-lg font-semibold text-foreground">Nueva Valoración</h1>
-                  <p className="text-sm text-muted-foreground">Consulta de seguimiento y evolución</p>
+                  <p className="text-sm text-muted-foreground">Registro de signos vitales</p>
                 </div>
               </div>
             </div>
@@ -182,237 +184,127 @@ ${formData.recomendaciones}
 
       <main className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Información General */}
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <Calendar className="h-5 w-5 text-primary" />
-                <span>Información de la Valoración</span>
-              </CardTitle>
-              <CardDescription>Datos generales de la consulta de seguimiento</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="fecha">Fecha de Valoración *</Label>
-                  <div className="relative">
-                    <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="fecha"
-                      type="date"
-                      required
-                      className="pl-10"
-                      value={formData.fecha}
-                      onChange={(e) => handleInputChange("fecha", e.target.value)}
-                    />
+          {/* Información del Paciente */}
+          {paciente && (
+            <Card className="border-border/50">
+              <CardHeader>
+                <CardTitle className="flex items-center space-x-2">
+                  <User className="h-5 w-5 text-primary" />
+                  <span>Información del Paciente</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <Label className="text-sm font-medium text-gray-600">Nombre Completo</Label>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {paciente.nombres} {paciente.apellidos}
+                    </p>
                   </div>
+                  {paciente.telefono && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Teléfono</Label>
+                      <p className="text-gray-900">{paciente.telefono}</p>
+                    </div>
+                  )}
+                  {paciente.numero_registro_medico && (
+                    <div>
+                      <Label className="text-sm font-medium text-gray-600">Número de Registro</Label>
+                      <p className="text-gray-900">{paciente.numero_registro_medico}</p>
+                    </div>
+                  )}
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="tipo_valoracion">Tipo de Valoración</Label>
-                  <Select
-                    value={formData.tipo_valoracion}
-                    onValueChange={(value) => handleInputChange("tipo_valoracion", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="seguimiento">Seguimiento</SelectItem>
-                      <SelectItem value="control">Control</SelectItem>
-                      <SelectItem value="revision">Revisión</SelectItem>
-                      <SelectItem value="urgente">Urgente</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="estado_general">Estado General</Label>
-                  <Select
-                    value={formData.estado_general}
-                    onValueChange={(value) => handleInputChange("estado_general", value)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="mejorado">
-                        <div className="flex items-center space-x-2">
-                          <CheckCircle className="h-4 w-4 text-green-500" />
-                          <span>Mejorado</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="estable">
-                        <div className="flex items-center space-x-2">
-                          <TrendingUp className="h-4 w-4 text-blue-500" />
-                          <span>Estable</span>
-                        </div>
-                      </SelectItem>
-                      <SelectItem value="deteriorado">
-                        <div className="flex items-center space-x-2">
-                          <AlertCircle className="h-4 w-4 text-red-500" />
-                          <span>Deteriorado</span>
-                        </div>
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
-          {/* Evolución del Paciente */}
+          {/* Signos Vitales */}
           <Card className="border-border/50">
             <CardHeader>
               <CardTitle className="flex items-center space-x-2">
-                <TrendingUp className="h-5 w-5 text-primary" />
-                <span>Evolución del Paciente</span>
+                <Activity className="h-5 w-5 text-primary" />
+                <span>Signos Vitales</span>
               </CardTitle>
-              <CardDescription>Progreso y cambios desde la última consulta</CardDescription>
+              <CardDescription>Registro de signos vitales por enfermería</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="evolucion_paciente">Evolución General *</Label>
-                <Textarea
-                  id="evolucion_paciente"
-                  placeholder="Describe cómo ha evolucionado el paciente desde la última consulta..."
-                  className="min-h-[120px]"
-                  required
-                  value={formData.evolucion_paciente}
-                  onChange={(e) => handleInputChange("evolucion_paciente", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="sintomas_actuales">Síntomas Actuales</Label>
-                <Textarea
-                  id="sintomas_actuales"
-                  placeholder="Síntomas que presenta actualmente el paciente..."
-                  className="min-h-[100px]"
-                  value={formData.sintomas_actuales}
-                  onChange={(e) => handleInputChange("sintomas_actuales", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="respuesta_tratamiento">Respuesta al Tratamiento</Label>
-                <Textarea
-                  id="respuesta_tratamiento"
-                  placeholder="Cómo ha respondido el paciente al tratamiento actual..."
-                  className="min-h-[100px]"
-                  value={formData.respuesta_tratamiento}
-                  onChange={(e) => handleInputChange("respuesta_tratamiento", e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Evaluación Clínica */}
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <FileText className="h-5 w-5 text-primary" />
-                <span>Evaluación Clínica Actual</span>
-              </CardTitle>
-              <CardDescription>Hallazgos del examen físico y diagnóstico</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="examen_fisico_actual">Examen Físico Actual</Label>
-                <Textarea
-                  id="examen_fisico_actual"
-                  placeholder="Hallazgos relevantes del examen físico actual..."
-                  className="min-h-[100px]"
-                  value={formData.examen_fisico_actual}
-                  onChange={(e) => handleInputChange("examen_fisico_actual", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="diagnostico_actual">Diagnóstico Actual</Label>
-                <Textarea
-                  id="diagnostico_actual"
-                  placeholder="Diagnóstico basado en la evaluación actual..."
-                  className="min-h-[100px]"
-                  value={formData.diagnostico_actual}
-                  onChange={(e) => handleInputChange("diagnostico_actual", e.target.value)}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Plan de Tratamiento */}
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle className="flex items-center space-x-2">
-                <ClipboardList className="h-5 w-5 text-primary" />
-                <span>Plan de Tratamiento</span>
-              </CardTitle>
-              <CardDescription>Tratamiento y recomendaciones médicas</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="plan_tratamiento">Plan de Tratamiento *</Label>
-                <Textarea
-                  id="plan_tratamiento"
-                  placeholder="Plan de tratamiento a seguir..."
-                  className="min-h-[120px]"
-                  required
-                  value={formData.plan_tratamiento}
-                  onChange={(e) => handleInputChange("plan_tratamiento", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="medicamentos">Medicamentos</Label>
-                <Textarea
-                  id="medicamentos"
-                  placeholder="Medicamentos prescritos, dosis, frecuencia..."
-                  className="min-h-[100px]"
-                  value={formData.medicamentos}
-                  onChange={(e) => handleInputChange("medicamentos", e.target.value)}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="recomendaciones">Recomendaciones</Label>
-                <Textarea
-                  id="recomendaciones"
-                  placeholder="Recomendaciones generales para el paciente..."
-                  className="min-h-[100px]"
-                  value={formData.recomendaciones}
-                  onChange={(e) => handleInputChange("recomendaciones", e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="seguimiento">Próxima Cita de Seguimiento</Label>
+              <div className="space-y-2 mb-6">
+                <Label htmlFor="fecha_valoracion">Fecha de Valoración *</Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
-                    id="seguimiento"
+                    id="fecha_valoracion"
                     type="date"
-                    value={formData.seguimiento}
-                    onChange={(e) => handleInputChange("seguimiento", e.target.value)}
+                    required
+                    className="pl-10"
+                    value={formData.fecha_valoracion}
+                    onChange={(e) => handleInputChange("fecha_valoracion", e.target.value)}
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          {/* Notas Médicas */}
-          <Card className="border-border/50">
-            <CardHeader>
-              <CardTitle>Notas Médicas Adicionales</CardTitle>
-              <CardDescription>Observaciones y notas importantes</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <Label htmlFor="observaciones_medicas">Observaciones Médicas</Label>
-                <Textarea
-                  id="observaciones_medicas"
-                  placeholder="Notas adicionales, observaciones importantes, consideraciones especiales..."
-                  className="min-h-[120px]"
-                  value={formData.observaciones_medicas}
-                  onChange={(e) => handleInputChange("observaciones_medicas", e.target.value)}
-                />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="peso">Peso (lbs) *</Label>
+                  <Input
+                    id="peso"
+                    type="number"
+                    step="0.1"
+                    placeholder="162"
+                    value={formData.peso}
+                    onChange={(e) => handleInputChange("peso", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="talla">Talla (cm) *</Label>
+                  <Input
+                    id="talla"
+                    type="number"
+                    step="0.1"
+                    placeholder="165"
+                    value={formData.talla}
+                    onChange={(e) => handleInputChange("talla", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="pulso">Pulso x 1'</Label>
+                  <Input
+                    id="pulso"
+                    type="number"
+                    placeholder="86"
+                    value={formData.pulso}
+                    onChange={(e) => handleInputChange("pulso", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="respiracion">Respiración x 1'</Label>
+                  <Input
+                    id="respiracion"
+                    type="number"
+                    placeholder="18"
+                    value={formData.respiracion}
+                    onChange={(e) => handleInputChange("respiracion", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="presion_arterial">Presión Arterial</Label>
+                  <Input
+                    id="presion_arterial"
+                    placeholder="115/70"
+                    value={formData.presion_arterial}
+                    onChange={(e) => handleInputChange("presion_arterial", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="temperatura">Temperatura (°C)</Label>
+                  <Input
+                    id="temperatura"
+                    type="number"
+                    step="0.1"
+                    placeholder="36.2"
+                    value={formData.temperatura}
+                    onChange={(e) => handleInputChange("temperatura", e.target.value)}
+                  />
+                </div>
               </div>
             </CardContent>
           </Card>

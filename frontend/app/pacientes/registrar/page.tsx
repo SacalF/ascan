@@ -17,6 +17,7 @@ interface PacienteForm {
   nombres: string
   apellidos: string
   dpi: string
+  numeroExpediente: string
   fechaNacimiento: string
   sexo: string
   telefono: string
@@ -41,6 +42,7 @@ export default function RegistrarPacientePage() {
     nombres: "",
     apellidos: "",
     dpi: "",
+    numeroExpediente: "",
     fechaNacimiento: "",
     sexo: "",
     telefono: "",
@@ -151,6 +153,16 @@ export default function RegistrarPacientePage() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-2">
+                  <Label htmlFor="numeroExpediente">Número de Expediente *</Label>
+                  <Input
+                    id="numeroExpediente"
+                    required
+                    value={formData.numeroExpediente}
+                    onChange={(e) => handleInputChange("numeroExpediente", e.target.value)}
+                    placeholder="Ej: 001, 002, etc."
+                  />
+                </div>
+                <div className="space-y-2">
                   <Label htmlFor="dpi">DPI</Label>
                   <Input
                     id="dpi"
@@ -178,7 +190,9 @@ export default function RegistrarPacientePage() {
                     </p>
                   )}
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="sexo">Sexo *</Label>
                   <Select value={formData.sexo} onValueChange={(value) => handleInputChange("sexo", value)}>

@@ -3,8 +3,9 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Activity, User, Calendar, X, FileText, Clipboard, Clock } from "lucide-react"
+import { Activity, User, Calendar, X, FileText, Clipboard, Clock, Image as ImageIcon, ZoomIn } from "lucide-react"
 import { formatDateLong } from "@/lib/date-utils-simple"
+import { useState } from "react"
 
 interface ConsultaSeguimiento {
   id: string
@@ -25,6 +26,7 @@ interface ConsultaSeguimiento {
   tratamiento_actual?: string
   fecha_proxima_cita?: string
   proxima_cita?: string
+  imagenes?: string | string[]
 }
 
 interface SeguimientoModalProps {
@@ -35,6 +37,8 @@ interface SeguimientoModalProps {
 
 export function SeguimientoModal({ consulta, isOpen, onClose }: SeguimientoModalProps) {
   if (!isOpen) return null
+
+  const [imagenExpandida, setImagenExpandida] = useState<string | null>(null)
 
   const formatearFechaSegura = (fecha: string | null | undefined) => {
     if (!fecha) return "Sin fecha"
@@ -60,6 +64,28 @@ export function SeguimientoModal({ consulta, isOpen, onClose }: SeguimientoModal
       return "Fecha inválida"
     }
   }
+
+  // Parsear imágenes desde JSON string o array
+  const obtenerImagenes = (): string[] => {
+    if (!consulta.imagenes) return []
+    
+    try {
+      if (typeof consulta.imagenes === 'string') {
+        // Intentar parsear como JSON
+        const parsed = JSON.parse(consulta.imagenes)
+        return Array.isArray(parsed) ? parsed : []
+      }
+      if (Array.isArray(consulta.imagenes)) {
+        return consulta.imagenes
+      }
+    } catch (error) {
+      console.error("Error parseando imágenes:", error)
+    }
+    
+    return []
+  }
+
+  const imagenes = obtenerImagenes()
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -278,7 +304,67 @@ export function SeguimientoModal({ consulta, isOpen, onClose }: SeguimientoModal
               </div>
             </CardContent>
           </Card>
+
+          {/* Imágenes de la Consulta */}
+          {imagenes.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <ImageIcon className="h-5 w-5 text-purple-600" />
+                  Imágenes de la Consulta
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {imagenes.map((imagenUrl, index) => (
+                    <div
+                      key={index}
+                      className="relative group cursor-pointer rounded-lg overflow-hidden border border-gray-200 hover:shadow-lg transition-shadow"
+                      onClick={() => setImagenExpandida(imagenUrl)}
+                    >
+                      <img
+                        src={imagenUrl}
+                        alt={`Imagen ${index + 1} del seguimiento`}
+                        className="w-full h-32 object-cover"
+                        onError={(e) => {
+                          console.error('Error cargando imagen:', imagenUrl)
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">
+                        <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
+
+        {/* Modal de Imagen Expandida */}
+        {imagenExpandida && (
+          <div
+            className="fixed inset-0 bg-black bg-opacity-90 z-[60] flex items-center justify-center p-4"
+            onClick={() => setImagenExpandida(null)}
+          >
+            <div className="relative max-w-7xl max-h-full">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setImagenExpandida(null)}
+                className="absolute top-4 right-4 bg-white/10 hover:bg-white/20 text-white"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+              <img
+                src={imagenExpandida}
+                alt="Imagen expandida"
+                className="max-w-full max-h-[90vh] object-contain rounded-lg"
+              />
+            </div>
+          </div>
+        )}
 
         {/* Footer del Modal */}
         <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gray-50">

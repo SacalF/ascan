@@ -18,9 +18,9 @@ if (!BUCKET_NAME) {
 
 export class DigitalOceanSpacesService {
   // Subir archivo a DigitalOcean Spaces
-  static async uploadFile(file: Buffer, fileName: string, contentType: string): Promise<string> {
+  static async uploadFile(file: Buffer, fileName: string, contentType: string, folder: string = 'laboratorio'): Promise<string> {
     try {
-      const key = `laboratorio/${Date.now()}-${fileName}`
+      const key = `${folder}/${Date.now()}-${fileName}`
       
       console.log('=== DigitalOcean Spaces Debug ===')
       console.log('BUCKET_NAME:', BUCKET_NAME)
